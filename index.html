@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Просмотр фото</title>
+    <style type="text/css">
+        body {
+            margin: 0px;
+            font-family: 'Tahoma';
+        }
+
+        a {
+            color: darkgray;
+        }
+
+        p {
+            text-align: center;
+        }
+
+        .container {
+            width: 800px;
+            margin: auto;
+        }
+
+        span.title {
+            font-size: 14pt;
+            text-align: center;
+        }
+
+        a:has(span.title) {
+            text-decoration: none;
+            color: black;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <p>
+            <a href="/" title="Latest">
+                <span class="title">Фото с камеры</span>
+            </a>
+        </p>
+
+        <p class="content">
+            %if show:
+                <img src="/photo/{{idx}}" alt="photo" />
+            %else:
+                <span>Нет загруженных фотографий</span>
+            %end
+        </p>
+
+        <p class="links">
+            %if has_prev:
+                <a href="/{{idx - 1}}">&lt;&lt;</a>
+            %else:
+                <span>&lt;&lt;</span>
+            %end
+
+            &nbsp;
+            {{idx + 1}} / {{total}}
+            &nbsp;
+
+            %if has_next:
+                <a href="/{{idx + 1}}">&gt;&gt;</a>
+            %else:
+                <span> &gt;&gt;</span>
+            %end
+        </p>
+    </div>
+</body>
+</html>
