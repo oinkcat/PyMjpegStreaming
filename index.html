@@ -16,6 +16,11 @@
             text-align: center;
         }
 
+        p.content {
+            min-width: 640px;
+            min-height: 480px;
+        }
+
         .container {
             width: 800px;
             margin: auto;
@@ -29,6 +34,10 @@
         a:has(span.title) {
             text-decoration: none;
             color: black;
+        }
+
+        .hidden {
+            display: none;
         }
     </style>
 </head>
@@ -50,7 +59,7 @@
 
         <p class="links">
             %if has_prev:
-                <a href="/{{idx - 1}}">&lt;&lt;</a>
+                <a href="/{{str(idx - 1) + ('?static=1' if static else '')}}">&lt;&lt;</a>
             %else:
                 <span>&lt;&lt;</span>
             %end
@@ -60,11 +69,63 @@
             &nbsp;
 
             %if has_next:
-                <a href="/{{idx + 1}}">&gt;&gt;</a>
+                <a href="/{{str(idx + 1) + ('?static=1' if static else '')}}">&gt;&gt;</a>
             %else:
                 <span> &gt;&gt;</span>
             %end
         </p>
+
+        %if not static:
+            <p class="buttons">
+                <button type="button">Воспроизведение / Пауза</button>
+            </p>
+        %end
     </div>
+
+    <script type="text/javascript">
+        window.addEventListener('load', () => {
+            const AUTO_PLAY = true;
+            const FRAME_INTERVAL = 1000;
+
+            const LATEST_FRAME_URL = '/photo/0';
+
+            let isPlaying = AUTO_PLAY;
+            let playIntervalId = null;
+
+            const imageElem = document.querySelector('p.content img');
+            const playButton = document.querySelector('p.buttons button');
+
+            function togglePlayState(play) {
+                if (play) {
+                    togglePlayUi(play);
+                    playIntervalId = setInterval(() => {
+                        imageElem.src = LATEST_FRAME_URL + '?r=' + Math.random();
+                    }, FRAME_INTERVAL)
+                } else {
+                    clearInterval(playIntervalId);
+                    togglePlayUi(false);
+                }
+            }
+
+            function togglePlayUi(isPlaying) {
+                const linksBlock = document.querySelector('p.links');
+
+                if (isPlaying) {
+                    linksBlock.classList.add('hidden');
+                } else {
+                    linksBlock.classList.remove('hidden');
+                }
+            }
+
+            if (playButton != null) {
+                playButton.onclick = () => {
+                    isPlaying = !isPlaying;
+                    togglePlayState(isPlaying);
+                };
+
+                togglePlayState(isPlaying);
+            }
+        });
+    </script>
 </body>
 </html>

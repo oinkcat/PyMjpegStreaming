@@ -18,10 +18,13 @@ def viewer(photo_idx=0):
     has_photos = len(all_photos) > 0
     has_next = photo_idx < len(all_photos) - 1
     has_prev = photo_idx > 0
+    
+    is_static = 'static' in request.GET and request.GET['static'] == '1'
 
     return template('./index.html', \
         show=has_photos, has_prev=has_prev, has_next=has_next, \
-        idx=photo_idx, total=len(all_photos))
+        idx=photo_idx, total=len(all_photos), \
+        static=is_static)
 
 def list_photos():
     return list(filter(lambda fn: fn.endswith(ALLOWED_EXT), os.listdir(UPLOAD_DIR)))

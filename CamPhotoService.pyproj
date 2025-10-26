@@ -20,7 +20,8 @@
     <InterpreterId>MSBuild|env|$(MSBuildProjectFullPath)</InterpreterId>
     <WebBrowserPort>5555</WebBrowserPort>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <Environment>PORT=5555</Environment>
+    <Environment>SERVER_HOST=192.168.100.62
+SERVER_PORT=5555</Environment>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
