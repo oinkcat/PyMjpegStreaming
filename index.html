@@ -19,6 +19,7 @@
         p.content {
             min-width: 640px;
             min-height: 480px;
+            border: 1px solid lightgray;
         }
 
         .container {
@@ -29,6 +30,12 @@
         span.title {
             font-size: 14pt;
             text-align: center;
+        }
+
+        span.nophoto {
+            color: red;
+            display: inline-block;
+            margin-top: 200px;
         }
 
         a:has(span.title) {
@@ -53,7 +60,7 @@
             %if show:
                 <img src="/photo/{{idx}}" alt="photo" />
             %else:
-                <span>Нет загруженных фотографий</span>
+                <span class="nophoto">Нет загруженных фотографий</span>
             %end
         </p>
 

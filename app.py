@@ -27,12 +27,18 @@ def viewer(photo_idx=0):
         static=is_static)
 
 def list_photos():
-    return list(filter(lambda fn: fn.endswith(ALLOWED_EXT), os.listdir(UPLOAD_DIR)))
+    full_list = sorted(os.listdir(UPLOAD_DIR))
+    return list(filter(lambda fn: fn.endswith(ALLOWED_EXT), full_list))
 
 @get('/photo/<index:int>')
 def download_photo(index):
-    filename_from_end = list_photos()[-(index + 1)]
-    return bottle.static_file(filename_from_end, UPLOAD_DIR)
+    all_photos = list_photos()
+
+    if len(all_photos) > 0:
+        filename_from_end = all_photos[-(index + 1)]
+        return bottle.static_file(filename_from_end, UPLOAD_DIR)
+    else:
+        bottle.abort(404, 'No photo exists')
 
 @post('/upload')
 def upload_photo():
