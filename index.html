@@ -17,14 +17,15 @@
         }
 
         p.content {
-            min-width: 640px;
-            min-height: 480px;
+            display: inline-block;
+            padding: 10px;
             border: 1px solid lightgray;
         }
 
         .container {
             width: 800px;
             margin: auto;
+            text-align: center;
         }
 
         span.title {
@@ -92,9 +93,9 @@
     <script type="text/javascript">
         window.addEventListener('load', () => {
             const AUTO_PLAY = true;
-            const FRAME_INTERVAL = 1000;
+            const FRAME_INTERVAL = 500;
 
-            const LATEST_FRAME_URL = '/photo/0';
+            const LATEST_FRAME_URL = '/photo/latest';
 
             let isPlaying = AUTO_PLAY;
             let playIntervalId = null;
