@@ -1,28 +1,103 @@
-from genericpath import isfile
-from io import BytesIO
 import os
 import shutil
 import bottle
 import threading
 from bottle import request, get, post, response, template
+from io import BytesIO
+
+class PhotoUploadStorage:
+    """ Storage implemented as file system directories """
+
+    SUBDIR_CAPACITY = 1000
+    FILE_TEMPLATE = 'p_{0}.jpg'
+
+    def __init__(self, path):
+        self.base_path = path
+
+    def get_photos_count(self):
+        """ Get total number of photos """
+
+        segments = self.get_segments_list()
+    
+        if len(segments) > 0:
+            num_photos_rest = len(os.listdir(os.path.join(UPLOAD_DIR, str(segments[-1]))))
+            return (len(segments) - 1) * PhotoUploadStorage.SUBDIR_CAPACITY + num_photos_rest
+        else:
+            return 0
+
+    def get_segments_list(self):
+        """ Return ordered list of segments (subdirectories) """
+
+        return sorted([int(n) for n in os.listdir(self.base_path) if n.isnumeric()])
+
+    def get_photo_path_by_idx(self, index):
+        """ Return path to photo with specified index """
+
+        file_name = self.get_photo_filename(index)
+        segment_idx = index // PhotoUploadStorage.SUBDIR_CAPACITY
+        photo_path = os.path.join(self.base_path, str(segment_idx), file_name)
+
+        return photo_path if os.path.isfile(photo_path) else None
+
+    def get_photo_filename(self, index):
+        """ Get formatted name of photo for given index """
+
+        return PhotoUploadStorage.FILE_TEMPLATE.format(str(index).zfill(10))
+
+    def save_new_photo_fileobj(self, fileobj):
+        """ Save contents of file-like object as new photo """
+
+        new_photo_idx = self.get_photos_count()
+        segment_idx = new_photo_idx // PhotoUploadStorage.SUBDIR_CAPACITY
+        subdir_path = os.path.join(UPLOAD_DIR, str(segment_idx))
+
+        if not os.path.isdir(subdir_path):
+            os.mkdir(subdir_path)
+
+        new_photo_name = self.get_photo_filename(new_photo_idx)
+        new_photo_path = os.path.join(subdir_path, new_photo_name)
+
+        with open(new_photo_path, 'wb') as save_f:
+            shutil.copyfileobj(fileobj, save_f)
+
+class PhotoMemoryCache:
+    """ Caches photo bytes in memory """
+
+    def __init__(self):
+        self.photo_io = BytesIO()
+        self.lock = threading.Lock()
+  
+    def read_photo(self):
+        """ Read last photo bytes from cache """
+
+        with self.lock:
+            self.photo_io.seek(0)
+            photo_data = self.photo_io.read()
+
+            return photo_data
+
+    def write_photo(self, fileobj):
+        """ Write photo bytes into cache from file-like object """
+
+        with self.lock:
+            self.photo_io.seek(0)
+            self.photo_io.truncate(0)
+            shutil.copyfileobj(fileobj, self.photo_io)
 
 # Upload settings
 UPLOAD_DIR = './photos'
-UPLOAD_SUBDIR_CAPACITY = 1000
-UPLOAD_FILE_TEMPLATE = 'p_{0}.jpg'
 ALLOWED_MIME = 'image/jpeg'
 ALLOWED_EXT = '.jpg'
 
-# Caching
-cached_last_photo = BytesIO()
-cache_access_lock = threading.Lock()
+storage = PhotoUploadStorage(UPLOAD_DIR)
+last_photo_cache = PhotoMemoryCache()
 
 @get('/')
 @get('/<photo_idx:int>')
 def viewer(photo_idx=0):
     """ Renders a viewer page. """
 
-    total_num_photos = get_photos_count()
+    total_num_photos = storage.get_photos_count()
     has_photos = total_num_photos > 0
     has_next = photo_idx < total_num_photos - 1
     has_prev = photo_idx > 0
@@ -34,56 +109,12 @@ def viewer(photo_idx=0):
         idx=photo_idx, total=total_num_photos, \
         static=is_static)
 
-def get_photos_count():
-    """ Get total number of photos """
-
-    segments = get_segments_list()
-    
-    if len(segments) > 0:
-        num_photos_rest = len(os.listdir(os.path.join(UPLOAD_DIR, str(segments[-1]))))
-        return (len(segments) - 1) * UPLOAD_SUBDIR_CAPACITY + num_photos_rest
-    else:
-        return 0
-
-def get_segments_list():
-    """ Return ordered list of segments (subdirectories) """
-
-    return sorted([int(n) for n in os.listdir(UPLOAD_DIR) if n.isnumeric()])
-
-def get_photo_path_by_idx(index):
-    """ Return path to photo with specified index """
-
-    file_name = get_photo_filename(index)
-    segment_idx = index // UPLOAD_SUBDIR_CAPACITY
-    photo_path = os.path.join(UPLOAD_DIR, str(segment_idx), file_name)
-
-    return photo_path if os.path.isfile(photo_path) else None
-
-def get_photo_filename(index):
-    """ Get formatted name of photo for given index """
-
-    return UPLOAD_FILE_TEMPLATE.format(str(index).zfill(10))
-
-def save_new_photo_fileobj(fileobj):
-    """ Save contents of file-like object as new photo """
-
-    new_photo_idx = get_photos_count()
-    segment_idx = new_photo_idx // UPLOAD_SUBDIR_CAPACITY
-    subdir_path = os.path.join(UPLOAD_DIR, str(segment_idx))
-
-    if not os.path.isdir(subdir_path):
-        os.mkdir(subdir_path)
-
-    new_photo_path = os.path.join(subdir_path, get_photo_filename(new_photo_idx))
-    with open(new_photo_path, 'wb') as save_f:
-        shutil.copyfileobj(fileobj, save_f)
-
 @get('/photo/<index:int>')
 def download_photo(index):
     """ Send captured photo """
 
-    total_num_photos = get_photos_count()
-    photo_path = get_photo_path_by_idx(total_num_photos - index - 1)
+    total_num_photos = storage.get_photos_count()
+    photo_path = storage.get_photo_path_by_idx(total_num_photos - index - 1)
 
     if photo_path is not None:
         photo_dir, photo_name = os.path.split(photo_path)
@@ -95,31 +126,13 @@ def download_photo(index):
 def download_latest_photo():
     """ Send latest cached captured photo """
 
-    cached_photo_bytes = cached_photo_read()
+    cached_photo_bytes = last_photo_cache.read_photo()
 
     if len(cached_photo_bytes) > 0:
         response.content_type = ALLOWED_EXT
         return cached_photo_bytes
     else:
         return download_photo(0)
-
-def cached_photo_read():
-    """ Read last photo bytes from cache """
-
-    with cache_access_lock:
-        cached_last_photo.seek(0)
-        photo_data = cached_last_photo.read()
-        cached_last_photo.seek(0)
-
-        return photo_data
-
-def cache_photo_write(fileobj):
-    """ Write photo bytes into cache from file-like object """
-
-    with cache_access_lock:
-        cached_last_photo.seek(0)
-        cached_last_photo.truncate(0)
-        shutil.copyfileobj(fileobj, cached_last_photo)
 
 @post('/upload')
 def upload_photo():
@@ -128,16 +141,15 @@ def upload_photo():
     if request.content_length > 0 and request.content_type == ALLOWED_MIME:
         with request.body as upload_f:
             # Cache last uploaded photo
-            cache_photo_write(request.body)
+            last_photo_cache.write_photo(request.body)
 
             # Save to upload directory
             upload_f.seek(0)
-            save_new_photo_fileobj(upload_f)
+            storage.save_new_photo_fileobj(upload_f)
 
         return 'OK'
     else:
         bottle.abort(400, 'No file for upload')
-
 
 if __name__ == '__main__':
     bottle.debug(True)
