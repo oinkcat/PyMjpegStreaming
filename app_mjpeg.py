@@ -5,7 +5,7 @@ import os
 import time
 import socket
 import bottle
-from bottle import Response, request, get, post, response
+from bottle import get, response
 from threading import Thread, Event
 
 class MjpegStreamGenerator:
@@ -56,6 +56,48 @@ class MjpegStreamGenerator:
 
         MjpegStreamGenerator._frame_wait.set()
 
+class MjpegTcpListener:
+    """ Listen for MJPEG stream and split frames """
+
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+        self.thread = None
+
+    def run(self):
+        """ Start server thread """
+        
+        self.thread = Thread(target=self._serve)
+        self.thread.start()
+
+        print(f'Starting stream listener on: {self.host}:{self.port}')
+
+    def _serve(self):
+        """ Listen for incoming stream and serve client requests """
+
+        splitter = BinarySplitter(self._got_frame, JPEG_HEADER, JPEG_TRAILER)
+
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
+            server_socket.bind((self.host, self.port))
+            server_socket.listen()
+
+            while True:
+                client_socket, addr_info = server_socket.accept()
+                print(f'Connected stream client from: {addr_info}')
+
+                with client_socket:
+                    while recv_data := client_socket.recv(BS):
+                        splitter.process(recv_data)
+                        time.sleep(0.05)
+
+                print('Client disconnected')
+
+    def _got_frame(self, frame_bytes):
+        MjpegStreamGenerator.publish_frame(frame_bytes)
+
+    def stop(self):
+        self.thread.join()
+
 class BinarySplitter:
     """ Splits binary stream and yields frame data """
 
@@ -84,7 +126,7 @@ class BinarySplitter:
                 self.buffer = self.buffer[end_pos:]
                 self.hdr_pos = -1
 
-VIDEO_PATH = 'D:\Temp\MJPG\camera.mjpeg'
+VIDEO_PATH = 'D:\\Temp\\MJPG\\camera.mjpeg'
 MJPEG_MIME = 'multipart/x-mixed-replace'
 
 BS = 4096
@@ -121,37 +163,13 @@ def read_and_send_frames():
 
     MjpegStreamGenerator.publish_frame(None)
 
-def run_stream_listener(host):
-    """ Start server and wait for stream """
-
-    def got_frame(frame_bytes):
-        MjpegStreamGenerator.publish_frame(frame_bytes)
-
-    splitter = BinarySplitter(got_frame, JPEG_HEADER, JPEG_TRAILER)
-
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
-        server_socket.bind((host, STREAM_LISTENER_PORT))
-        server_socket.listen()
-
-        print(f'Starting stream listener on: {host}:{STREAM_LISTENER_PORT}')
-
-        while True:
-            client_socket, addr_info = server_socket.accept()
-            print(f'Connected stream client from: {addr_info}')
-
-            with client_socket:
-                while recv_data := client_socket.recv(BS):
-                    splitter.process(recv_data)
-                    time.sleep(0.05)
-
 if __name__ == '__main__':
     HOST = os.environ.get('SERVER_HOST', 'localhost')
     PORT = int(os.environ.get('SERVER_PORT', '5555'))
 
-    stream_listener = Thread(target=run_stream_listener, args=[HOST])
-    stream_listener.start()
+    stream_server = MjpegTcpListener(HOST, STREAM_LISTENER_PORT)
+    stream_server.run()
     
     bottle.debug(True)
     bottle.run(server='wsgiref', host=HOST, port=PORT)
-
-    stream_listener.join()
+    stream_server.stop()
