@@ -6,7 +6,7 @@
     <ProjectGuid>4c385e62-972e-4469-86dd-46e422ce10b1</ProjectGuid>
     <ProjectHome>.</ProjectHome>
     <ProjectTypeGuids>{e614c764-6d9e-4607-9337-b7073809a0bd};{1b580a1a-fdb3-4b32-83e1-6407eb2722e6};{349c5851-65df-11da-9384-00065b846f21};{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
-    <StartupFile>app.py</StartupFile>
+    <StartupFile>app_jpegs.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -32,7 +32,8 @@ SERVER_PORT=5555</Environment>
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="app.py" />
+    <Compile Include="app_jpegs.py" />
+    <Compile Include="app_mjpeg.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="index.html" />

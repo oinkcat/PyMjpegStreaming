@@ -1,3 +1,6 @@
+"""
+Test JPEG Sequence Streaming
+"""
 import os
 import shutil
 import bottle
@@ -35,7 +38,8 @@ class PhotoUploadStorage:
 
         file_name = self.get_photo_filename(index)
         segment_idx = index // PhotoUploadStorage.SUBDIR_CAPACITY
-        photo_path = os.path.join(self.base_path, str(segment_idx), file_name)
+        segment_dir = str(segment_idx).zfill(5)
+        photo_path = os.path.join(self.base_path, segment_dir, file_name)
 
         return photo_path if os.path.isfile(photo_path) else None
 
