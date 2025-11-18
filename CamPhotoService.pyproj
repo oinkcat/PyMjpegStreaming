@@ -37,6 +37,7 @@ SERVER_PORT=5555</Environment>
   </ItemGroup>
   <ItemGroup>
     <Content Include="index.html" />
+    <Content Include="README.md" />
     <Content Include="requirements.txt" />
   </ItemGroup>
   <ItemGroup>
