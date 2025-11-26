@@ -39,8 +39,12 @@ SERVER_PORT=5555</Environment>
     <Content Include="index.html" />
     <Content Include="README.md" />
     <Content Include="requirements.txt" />
+    <Content Include="scripts\capture_photos.sh" />
+    <Content Include="scripts\send_pics.sh" />
+    <Content Include="scripts\stream_mjpeg.sh" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="scripts\" />
     <Folder Include="photos\" />
   </ItemGroup>
   <ItemGroup>
