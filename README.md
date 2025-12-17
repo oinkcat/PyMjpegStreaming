@@ -1,4 +1,4 @@
-# CamPhotoService
+# PyMjpegStreaming
 
 Простые скрипты для стриминга фото/видео в форматах JPEG/MJPEG через сервер-посредник.
 
